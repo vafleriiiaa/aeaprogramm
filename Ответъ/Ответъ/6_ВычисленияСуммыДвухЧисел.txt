@@ -1,0 +1,64 @@
+Элжур:
+Системное программирование. Управление потоками
+09.02.2024, 10:32
+
+код от гпт, но он сделан на основе кода Е. Л. 
+#include <iostream>
+#include <windows.h> // Для работы с потоками в Windows
+
+using namespace std;
+
+// Функция, которая будет выполняться в отдельном потоке
+DWORD WINAPI SumThreadFunction(LPVOID lpParam)
+{
+    // Преобразуем параметр в указатель на структуру с данными
+    int* params = (int*)lpParam;
+    int a = params[0];
+    int b = params[1];
+
+    // Вычисляем сумму
+    int result = a + b;
+
+    // Выводим результат в отдельном потоке
+    cout << "Sum (from thread) = " << result << endl;
+
+    return 0;
+}
+
+int main()
+{
+    int a, b;
+
+    // Ввод двух чисел
+    cout << "Input two integers: ";
+    cin >> a >> b;
+
+    // Создаем массив для передачи параметров в поток
+    int params[2] = { a, b };
+
+    // Создаем поток
+    HANDLE hThread = CreateThread(
+        NULL,                   // Атрибуты безопасности
+        0,                      // Размер стека (по умолчанию)
+        SumThreadFunction,      // Функция потока
+        params,                 // Параметры для функции потока
+        0,                      // Флаги создания (по умолчанию)
+        NULL);                  // Идентификатор потока (не используется)
+
+    if (hThread == NULL)
+    {
+        cerr << "Failed to create thread. Error code: " << GetLastError() << endl;
+        return 1;
+    }
+
+    // Ожидаем завершения потока
+    WaitForSingleObject(hThread, INFINITE);
+
+    // Закрываем дескриптор потока
+    CloseHandle(hThread);
+
+    // Выводим результат в основном потоке
+    cout << "Sum (from main) = " << a + b << endl;
+
+    return 0;
+}

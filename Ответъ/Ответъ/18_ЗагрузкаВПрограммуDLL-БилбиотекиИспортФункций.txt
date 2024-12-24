@@ -1,0 +1,51 @@
+код длл библиотеки:
+#include "pch.h"
+#include <iostream>
+#include <limits>
+
+extern "C" {
+    __declspec(dllexport) void initialize() {
+        std::cout << "Library initialized." << std::endl; // Сообщение об инициализации
+    }
+
+    __declspec(dllexport) int findMin(int* arr, int size) {
+        int min = arr[0];
+        for (int i = 1; i < size; i++) {
+            if (arr[i] < min) {
+                min = arr[i];
+            }
+        }
+        return min; // Возвращаем минимальное значение
+    }
+}
+
+код программы:
+// main.cpp
+#include <iostream>
+#include <windows.h>
+
+typedef void (*InitializeFunc)();
+typedef int (*FindMinFunc)(int*, int);
+
+int main() {
+    HMODULE hDll = LoadLibrary(L"C:\\Users\\jupig\\source\\repos\\Dll1\\x64\\Debug\\Dll1.dll");
+    if (hDll != NULL) {
+        InitializeFunc initialize = (InitializeFunc)GetProcAddress(hDll, "initialize");
+        FindMinFunc findMin = (FindMinFunc)GetProcAddress(hDll, "findMin");
+
+        if (initialize && findMin) {
+            initialize(); // Вызов функции инициализации
+
+            int arr[] = { 5, 3, 8, 11, 4, 12, 41 };
+            int min = findMin(arr, 5); // Поиск минимального числа
+            std::cout << "Minimum value: " << min << std::endl; // Вывод минимального значения
+        }
+
+        FreeLibrary(hDll); // Выгрузка библиотеки
+    }
+    else {
+        std::cerr << "Failed to load the library." << std::endl; // Сообщение об ошибке
+    }
+
+    return 0;
+}

@@ -1,0 +1,137 @@
+#include <windows.h>
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    HANDLE hNamedPipe;
+
+    // Создание именованного канала для чтения
+    hNamedPipe = CreateNamedPipe(
+        L"\\\\.\\pipe\\NamedPipe", // имя канала
+        PIPE_ACCESS_INBOUND,      // доступ только для чтения
+        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, // синхронная передача сообщений
+        PIPE_UNLIMITED_INSTANCES, // неограниченное количество копий
+        1024,                     // размер выходного буфера
+        1024,                     // размер входного буфера
+        0,                        // тайм-аут по умолчанию
+        NULL                      // атрибуты безопасности
+    );
+
+    if (hNamedPipe == INVALID_HANDLE_VALUE)
+    {
+        cerr << "The pipe creation failed." << endl
+            << "The last error code: " << GetLastError() << endl;
+        return 0;
+    }
+
+    cout << "The server is waiting for connection with a client." << endl;
+    if (!ConnectNamedPipe(hNamedPipe, NULL)) // подключение клиента к каналу
+    {
+        cerr << "The connection failed." << endl
+            << "The last error code: " << GetLastError() << endl;
+        CloseHandle(hNamedPipe);
+        cout << "Press any key to exit.";
+        cin.get();
+        return 0;
+    }
+
+    // Чтение данных из канала
+    for (int i = 0; i < 10; i++)
+    {
+        int data;
+        DWORD bytesRead;
+
+        if (!ReadFile(
+            hNamedPipe,           // дескриптор канала
+            &data,                // буфер для чтения данных
+            sizeof(int),          // число читаемых байтов
+            &bytesRead,           // число считанных байтов
+            NULL))                // асинхронный буфер
+        {
+            cerr << "Read file failed." << endl
+                << "The last error code: " << GetLastError() << endl;
+            CloseHandle(hNamedPipe);
+            cout << "Press any key to exit.";
+            cin.get();
+            return 0;
+        }
+
+        cout << "The number " << data << " was read by the server." << endl;
+    }
+
+    // Закрытие канала
+    CloseHandle(hNamedPipe);
+    cout << "The pipe is closed by the server." << endl;
+    cout << "Press any key to exit.";
+    cin.get();
+    return 0;
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+//                               клиент
+//////////////////////////////////////////////////////////////////////////////
+#include <windows.h>
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    HANDLE hNamedPipe;
+    wchar_t pipeName[] = L"\\\\.\\pipe\\NamedPipe";
+
+    hNamedPipe = CreateFile(
+        pipeName,               // имя канала (широкая строка)
+        GENERIC_WRITE,          // запись в канал
+        FILE_SHARE_READ,        // разрешено одновременное чтение из канала
+        NULL,                   // защита по умолчанию
+        OPEN_EXISTING,          // подключение к уже существующему каналу
+        0,                      // атрибуты по умолчанию
+        NULL                    // дополнительных атрибутов нет
+    );
+
+
+    if (hNamedPipe == INVALID_HANDLE_VALUE)
+    {
+        cerr << "Connection with the named pipe failed." << endl
+            << "The last error code: " << GetLastError() << endl;
+        cout << "Press any key to exit.";
+        cin.get();
+        return 0;
+    }
+
+    // Пишем в именованный канал
+    DWORD bytesWritten;
+    for (int i = 0; i < 10; i++)
+    {
+        if (!WriteFile(
+            hNamedPipe,      // дескриптор канала
+            &i,              // данные
+            sizeof(i),       // размер данных
+            &bytesWritten,   // количество записанных байтов
+            NULL))           // синхронная запись
+        {
+            // Ошибка записи
+            cerr << "Writing to the named pipe failed." << endl
+                << "The last error code: " << GetLastError() << endl;
+            CloseHandle(hNamedPipe);
+            cout << "Press any key to exit.";
+            cin.get();
+            return 0;
+        }
+
+        // Вывод числа на консоль
+        cout << "The number " << i << " is written to the named pipe." << endl;
+        Sleep(100); // задержка
+    }
+
+    // Закрываем дескриптор канала
+    CloseHandle(hNamedPipe);
+    cout << "The data are written by the client." << endl;
+    cout << "Press any key to exit.";
+    cin.get();
+    return 0;
+}

@@ -1,0 +1,34 @@
+#include <stdio.h>
+#include <windows.h>
+#include <locale.h>
+
+void PrintFileTime(FILETIME ft) {
+    SYSTEMTIME st;
+    FileTimeToSystemTime(&ft, &st);
+    printf("%02d/%02d/%d %02d:%02d:%02d", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute, st.wSecond);
+}
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+    WIN32_FIND_DATA findFileData;
+				сюда пишите любую папку, в конец строки два слэша и звездочка
+    HANDLE hFind = FindFirstFile("C:\\Колледж\\Курс 4\\Мат моделирование\\*", &findFileData);
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        printf("Ошибка открытия каталога\n");
+        return 1;
+    }
+
+    do {
+        if (!(findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            printf("Имя файла: %s\n", findFileData.cFileName);
+            printf("Размер файла: %lld байт\n", ((LONGLONG)findFileData.nFileSizeHigh << 32) + findFileData.nFileSizeLow);
+            printf("Дата и время последнего изменения: ");
+            PrintFileTime(findFileData.ftLastWriteTime);
+            printf("\n\n");
+        }
+    } while (FindNextFile(hFind, &findFileData) != 0);
+
+    FindClose(hFind);
+    return 0;
+}

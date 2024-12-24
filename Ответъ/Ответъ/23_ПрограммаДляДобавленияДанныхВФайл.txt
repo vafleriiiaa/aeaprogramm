@@ -1,0 +1,54 @@
+Сначала необходимо создать файл text.txt и что-то написать
+
+
+#include <windows.h>
+#include <iostream>
+#include <locale.h>
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+    // Имя файла
+    LPCWSTR fileName = L"text.txt";
+
+    // Открываем файл с правами на запись и добавление
+    HANDLE hFile = CreateFileW(
+        fileName,                // имя файла
+        FILE_APPEND_DATA,        // доступ на добавление данных
+        0,                       // общий доступ
+        NULL,                    // атрибуты безопасности
+        OPEN_ALWAYS,             // открываем или создаем файл
+        FILE_ATTRIBUTE_NORMAL,   // атрибуты файла
+        NULL                     // шаблон файла
+    );
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        std::cerr << "Не удалось открыть файл. Код ошибки: " << GetLastError() << std::endl;
+        return 1;
+    }
+
+    // Данные для записи
+    const char* data = u8"Добавляемая строка\n";
+    DWORD bytesWritten;
+
+    // Записываем данные в конец файла
+    BOOL result = WriteFile(
+        hFile,           // дескриптор файла
+        data,            // буфер с данными
+        strlen(data),    // количество байт для записи
+        &bytesWritten,   // количество записанных байт
+        NULL             // асинхронный буфер
+    );
+
+    if (!result) {
+        std::cerr << "Не удалось записать данные. Код ошибки: " << GetLastError() << std::endl;
+        CloseHandle(hFile);
+        return 1;
+    }
+
+    std::cout << "Данные успешно добавлены в файл." << std::endl;
+
+    // Закрываем дескриптор файла
+    CloseHandle(hFile);
+
+    return 0;
+}

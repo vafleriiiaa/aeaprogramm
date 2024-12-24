@@ -1,0 +1,40 @@
+Сначала создать файл text.txt чёто написать, программа скопирует содержимое в созданный ею файл file2.txt
+
+#include <stdio.h>
+#include <errno.h>
+#include <locale.h>
+#include <string.h>
+
+int main() {
+    FILE* file = NULL;
+    errno_t err;
+    const char* data = "Добавляемая строка\n";
+    const unsigned char bom[] = { 0xEF, 0xBB, 0xBF }; // UTF-8 BOM
+
+    setlocale(LC_ALL, "Russian");
+
+    // Открытие файла в режиме добавления
+    err = fopen_s(&file, "text.txt", "ab");
+    if (err != 0) {
+        perror("Не удалось открыть файл");
+        return 1;
+    }
+
+    // Проверка и добавление BOM, если файл пустой
+    fseek(file, 0, SEEK_END);
+    if (ftell(file) == 0) {
+        fwrite(bom, sizeof(bom), 1, file);
+    }
+
+    // Запись данных в конец файла
+    if (fwrite(data, sizeof(char), strlen(data), file) != strlen(data)) {
+        perror("Ошибка записи в файл");
+        fclose(file);
+        return 2;
+    }
+
+    // Закрытие файла
+    fclose(file);
+    printf("Данные успешно добавлены в файл.\n");
+    return 0;
+}

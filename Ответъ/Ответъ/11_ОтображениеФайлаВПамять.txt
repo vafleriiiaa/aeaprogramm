@@ -1,0 +1,54 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+
+void createFile(const std::string& filename) {
+    std::ofstream outFile(filename);
+    std::vector<int> numbers = { 1, 2, 3, 4, 5 }; // Пример массива целых чисел
+
+    for (int num : numbers) {
+        outFile << num << " ";
+    }
+    outFile.close();
+}
+
+void modifyFile(const std::string& filename) {
+    std::ifstream inFile(filename);
+    std::vector<int> numbers;
+    int number;
+
+    // Чтение чисел из файла
+    while (inFile >> number) {
+        numbers.push_back(number + 10); // Увеличение каждого числа на 10
+    }
+    inFile.close();
+
+    // Запись измененных чисел обратно в файл
+    std::ofstream outFile(filename);
+    for (int num : numbers) {
+        outFile << num << " ";
+    }
+    outFile.close();
+}
+
+void displayFile(const std::string& filename) {
+    std::ifstream inFile(filename);
+    int number;
+
+    // Вывод содержимого файла на экран
+    while (inFile >> number) {
+        std::cout << number << " ";
+    }
+    std::cout << std::endl;
+    inFile.close();
+}
+
+int main() {
+    //const std::string filename = "numbers.txt";
+    const std::string filename = "test.txt";
+    //createFile(filename); // Создание файла (если он не был создан)
+    modifyFile(filename); // Изменение значений в файле
+    displayFile(filename); // Вывод содержимого файла на экран
+
+    return 0;
+}

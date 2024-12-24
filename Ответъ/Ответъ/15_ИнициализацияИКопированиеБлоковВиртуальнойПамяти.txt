@@ -1,0 +1,63 @@
+#include <iostream>
+#include <windows.h>
+
+int main() {
+    // Размер блока памяти
+    const SIZE_T blockSize = 1024; // 1 КБ
+
+    // Выделение блока виртуальной памяти
+    LPVOID pBlock1 = VirtualAlloc(NULL, blockSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (pBlock1 == NULL) {
+        std::cerr << "Failed to allocate memory: " << GetLastError() << std::endl;
+        return 1;
+    }
+
+    // Инициализация блока памяти
+    for (size_t i = 0; i < blockSize; i++) {
+        *((char*)pBlock1 + i) = static_cast<char>(i % 256); // Заполнение данными
+    }
+
+    // Выделение второго блока виртуальной памяти
+    LPVOID pBlock2 = VirtualAlloc(NULL, blockSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (pBlock2 == NULL) {
+        std::cerr << "Failed to allocate memory: " << GetLastError() << std::endl;
+        VirtualFree(pBlock1, 0, MEM_RELEASE);
+        return 1;
+    }
+
+    // Копирование данных из первого блока во второй
+    CopyMemory(pBlock2, pBlock1, blockSize);
+
+    // Вывод данных из второго блока
+    std::cout << "Data copied to the second block:" << std::endl;
+    for (size_t i = 0; i < 16; i++) { // Вывод первых 16 байтов
+        std::cout << static_cast<int>(*((char*)pBlock2 + i)) << " ";
+    }
+    std::cout << std::endl;
+
+    // Освобождение выделенной памяти
+    VirtualFree(pBlock1, 0, MEM_RELEASE);
+    VirtualFree(pBlock2, 0, MEM_RELEASE);
+
+    return 0;
+}
+
+
+
+Объяснение:
+Выделение памяти:
+Используется VirtualAlloc для выделения блока виртуальной памяти размером 1 КБ (1024 байта).
+Проверяется успешность выделения памяти.
+2. Инициализация блока:
+Блок памяти заполняется данными (значениями от 0 до 255).
+3. Копирование данных:
+Выделяется второй блок памяти.
+Используется CopyMemory для копирования данных из первого блока во второй.
+4. Вывод данных:
+Выводятся первые 16 байтов из второго блока, чтобы проверить, что данные были успешно скопированы.
+5. Освобождение памяти:
+Используется VirtualFree для освобождения выделенной памяти.
+Запуск:
+1. Скомпилируйте и запустите программу в Visual Studio.
+2. Программа выделит память, инициализирует ее, скопирует данные и выведет их на экран.
+Этот пример демонстрирует основные операции с виртуальной памятью в Windows и может быть расширен в зависимости от ваших требований.

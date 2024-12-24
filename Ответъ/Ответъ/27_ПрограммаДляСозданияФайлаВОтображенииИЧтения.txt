@@ -1,0 +1,65 @@
+#include <stdio.h>
+#include <windows.h>
+
+#define FILE_SIZE 1024
+
+int main() {
+    HANDLE hFile, hMap;
+    LPVOID pMap;
+    const char* data = "Пример данных для записи в файл.";
+
+    // Создание файла
+    hFile = CreateFile("example.txt", GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        printf("Ошибка создания файла\n");
+        return 1;
+    }
+
+    // Создание отображения файла
+    hMap = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, FILE_SIZE, NULL);
+    if (hMap == NULL) {
+        printf("Ошибка создания отображения файла\n");
+        CloseHandle(hFile);
+        return 2;
+    }
+
+    // Отображение файла в память
+    pMap = MapViewOfFile(hMap, FILE_MAP_WRITE, 0, 0, FILE_SIZE);
+    if (pMap == NULL) {
+        printf("Ошибка отображения файла в память\n");
+        CloseHandle(hMap);
+        CloseHandle(hFile);
+        return 3;
+    }
+
+    // Запись данных в отображение
+    CopyMemory(pMap, data, strlen(data) + 1);
+
+    // Закрытие отображения и файла
+    UnmapViewOfFile(pMap);
+    CloseHandle(hMap);
+    CloseHandle(hFile);
+
+    остальной код должен быть типа в другом проекте, но ничё, и так работает, а надо будет - скопируете, не сломаетесь
+
+    // Открытие файла для чтения
+    hFile = CreateFile("example.txt", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        printf("Ошибка открытия файла для чтения\n");
+        return 4;
+    }
+
+    // Чтение данных из файла
+    char buffer[FILE_SIZE];
+    DWORD bytesRead;
+    if (ReadFile(hFile, buffer, FILE_SIZE, &bytesRead, NULL)) {
+        printf("Прочитанные данные: %s\n", buffer);
+    } else {
+        printf("Ошибка чтения из файла\n");
+    }
+
+    // Закрытие файла
+    CloseHandle(hFile);
+
+    return 0;
+}

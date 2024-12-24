@@ -1,0 +1,87 @@
+Сначала создать файл text.txt чёто написать, программа скопирует содержимое в созданный ею файл
+#include <windows.h>
+#include <stdio.h>
+
+void copyFileUsingMapping(const char* sourceFile, const char* destinationFile) {
+    // Открытие исходного файла
+    HANDLE hSource = CreateFileA(
+        sourceFile, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hSource == INVALID_HANDLE_VALUE) {
+        perror("Ошибка открытия исходного файла");
+        return;
+    }
+
+    // Получение размера исходного файла
+    DWORD fileSize = GetFileSize(hSource, NULL);
+    if (fileSize == INVALID_FILE_SIZE) {
+        perror("Ошибка определения размера исходного файла");
+        CloseHandle(hSource);
+        return;
+    }
+
+    // Создание отображения исходного файла
+    HANDLE hSourceMapping = CreateFileMappingA(
+        hSource, NULL, PAGE_READONLY, 0, 0, NULL);
+    if (hSourceMapping == NULL) {
+        perror("Ошибка создания отображения исходного файла");
+        CloseHandle(hSource);
+        return;
+    }
+
+    // Отображение исходного файла в память
+    LPCVOID sourceData = MapViewOfFile(
+        hSourceMapping, FILE_MAP_READ, 0, 0, 0);
+    if (sourceData == NULL) {
+        perror("Ошибка отображения исходного файла в память");
+        CloseHandle(hSourceMapping);
+        CloseHandle(hSource);
+        return;
+    }
+
+    // Создание целевого файла
+    HANDLE hDestination = CreateFileA(
+        destinationFile, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hDestination == INVALID_HANDLE_VALUE) {
+        perror("Ошибка создания целевого файла");
+        UnmapViewOfFile(sourceData);
+        CloseHandle(hSourceMapping);
+        CloseHandle(hSource);
+        return;
+    }
+
+    // Запись данных из исходного файла в целевой файл
+    DWORD bytesWritten;
+    if (!WriteFile(hDestination, sourceData, fileSize, &bytesWritten, NULL) || bytesWritten != fileSize) {
+        perror("Ошибка записи в целевой файл");
+    }
+    else {
+        printf("Данные успешно скопированы из %s в %s.\n", sourceFile, destinationFile);
+    }
+
+    // Освобождение ресурсов
+    UnmapViewOfFile(sourceData);
+    CloseHandle(hSourceMapping);
+    CloseHandle(hSource);
+    CloseHandle(hDestination);
+}
+
+int main() {
+    SetConsoleOutputCP(1251);  // Устанавливаем кодировку для корректного вывода
+    SetConsoleCP(1251);        // Устанавливаем кодировку для корректного ввода
+
+    char sourceFile[256] = { 0 };
+    char destinationFile[256] = { 0 };
+
+    // Ввод имени исходного файла с использованием безопасной функции scanf_s
+    printf("Введите имя исходного файла: ");
+    scanf_s("%255s", sourceFile, (unsigned)_countof(sourceFile));
+
+    // Ввод имени целевого файла с использованием безопасной функции scanf_s
+    printf("Введите имя целевого файла: ");
+    scanf_s("%255s", destinationFile, (unsigned)_countof(destinationFile));
+
+    // Копируем данные из исходного файла в целевой файл
+    copyFileUsingMapping(sourceFile, destinationFile);
+
+    return 0;
+}

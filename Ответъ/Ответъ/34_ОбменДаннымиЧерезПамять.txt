@@ -1,0 +1,156 @@
+#include <windows.h>
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    const char MappingName[] = "MappingName"; // имя отображаемого файла
+    HANDLE hMapFile;                         // дескриптор области отображаемого файла
+    int* ptr = nullptr;                      // указатель на начало отображаемого файла
+
+    // Создаем объект отображаемого файла
+    hMapFile = CreateFileMappingA(
+        INVALID_HANDLE_VALUE,    // использование файла подкачки
+        NULL,                    // атрибуты безопасности по умолчанию
+        PAGE_READWRITE,          // доступ на чтение и запись
+        0,                       // размер файла (старшие 32 бита)
+        sizeof(int) * 10,        // размер файла (младшие 32 бита)
+        MappingName              // имя отображаемого файла
+    );
+
+    if (hMapFile == NULL)
+    {
+        cerr << "CreateFileMapping failed. Error code: " << GetLastError() << endl;
+        return 1;
+    }
+
+    // Отображаем файл в адресное пространство текущего процесса
+    ptr = static_cast<int*>(MapViewOfFile(
+        hMapFile,           // дескриптор отображаемого файла
+        FILE_MAP_WRITE,     // разрешение на запись
+        0,                  // смещение страницы (старшие 32 бита)
+        0,                  // смещение страницы (младшие 32 бита)
+        sizeof(int) * 10    // размер отображаемой области
+    ));
+
+    if (ptr == nullptr)
+    {
+        cerr << "MapViewOfFile failed. Error code: " << GetLastError() << endl;
+        CloseHandle(hMapFile);
+        return 1;
+    }
+
+    // Записываем данные в отображаемую область
+    for (int i = 0; i < 10; i++)
+    {
+        ptr[i] = i + 1;
+    }
+
+    // Вывод записанных данных
+    cout << "Data written to shared memory: ";
+    for (int i = 0; i < 10; i++)
+    {
+        cout << ptr[i] << ' ';
+    }
+    cout << endl;
+
+    // Запускаем процесс-клиент
+    const wchar_t lpApplicationName[] = L"C:\\Users\\mrhex\\source\\repos\\ConsoleApplication3\\x64\\Debug\\ConsoleApplication3.exe";
+    STARTUPINFO si = { sizeof(si) };
+    PROCESS_INFORMATION pi = {};
+
+    if (!CreateProcessW(
+        lpApplicationName, // путь к исполняемому файлу
+        NULL,              // аргументы командной строки
+        NULL,              // атрибуты безопасности для процесса
+        NULL,              // атрибуты безопасности для потока
+        FALSE,             // наследование дескрипторов
+        CREATE_NEW_CONSOLE,// создание нового окна консоли
+        NULL,              // переменные окружения
+        NULL,              // текущая директория
+        &si,               // информация о старте процесса
+        &pi                // информация о процессе
+    ))
+    {
+        cerr << "CreateProcess failed. Error code: " << GetLastError() << endl;
+        UnmapViewOfFile(ptr);
+        CloseHandle(hMapFile);
+        return 1;
+    }
+
+    // Ждем завершения процесса-клиента
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    // Освобождаем ресурсы
+    UnmapViewOfFile(ptr);
+    CloseHandle(hMapFile);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    cout << "All resources released. Input any char to exit: ";
+    cin.get();
+
+    return 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+//                               клиент
+//////////////////////////////////////////////////////////////////////////////
+
+#include <windows.h>
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    const char MappingName[] = "MappingName"; // имя отображаемого файла
+    HANDLE hMapFile;                         // дескриптор области отображаемого файла
+    int* ptr = nullptr;                      // указатель на начало отображаемого файла
+
+    // Открываем объект отображаемого файла
+    hMapFile = OpenFileMappingA(
+        FILE_MAP_READ,         // доступ только на чтение
+        FALSE,                 // дескрипторы не наследуются
+        MappingName            // имя отображаемого файла
+    );
+
+    if (hMapFile == NULL)
+    {
+        cerr << "OpenFileMapping failed. Error code: " << GetLastError() << endl;
+        return 1;
+    }
+
+    // Отображаем файл в адресное пространство текущего процесса
+    ptr = static_cast<int*>(MapViewOfFile(
+        hMapFile,           // дескриптор отображаемого файла
+        FILE_MAP_READ,      // разрешение на чтение
+        0,                  // смещение страницы (старшие 32 бита)
+        0,                  // смещение страницы (младшие 32 бита)
+        sizeof(int) * 10    // размер отображаемой области
+    ));
+
+    if (ptr == nullptr)
+    {
+        cerr << "MapViewOfFile failed. Error code: " << GetLastError() << endl;
+        CloseHandle(hMapFile);
+        return 1;
+    }
+
+    // Читаем данные из отображаемой памяти
+    cout << "Data read from shared memory: ";
+    for (int i = 0; i < 10; i++)
+    {
+        cout << ptr[i] << ' ';
+    }
+    cout << endl;
+
+    // Освобождаем ресурсы
+    UnmapViewOfFile(ptr);
+    CloseHandle(hMapFile);
+
+    cout << "All resources released. Input any char to exit: ";
+    cin.get();
+
+    return 0;
+}

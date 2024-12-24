@@ -1,0 +1,32 @@
+Из проекта библиотеки копируешь:
+Файл .dll, кидаешь его в папку с exe другого проекта
+Файл .lib, кидаешь его в папку с исходниками другого проекта
+перед этим надо проект запустить а библиотеку командой в терминале (в 20 написано)
+использовалась библиотека из прошлого задания
+Перед запуском надо создать файл text.txt и чёто написать
+// use_count_character.cpp
+#include <iostream>
+#include <Windows.h>
+using namespace std;
+
+int main() {
+    HMODULE hDll;
+    const char* filePath = "text.txt";
+    char targetChar = 'a';
+    int (*countCharacter)(const char*,int);
+    hDll = LoadLibrary("count_character.dll"); //если тут ошибка, то можно LoadLibraryW(L"count_character.dll");
+    if (!hDll) {
+        cerr << "Load library failed." << endl;
+        cout<< GetLastError();
+    }
+    countCharacter = (int (*)(const char*, int))GetProcAddress(hDll, "countCharacter");
+    int count = countCharacter(filePath, targetChar);
+    cout << count << endl;
+    if (!FreeLibrary(hDll)) {
+        cerr << "Free library failed." << endl;
+        return GetLastError();
+    }
+    cout << "Press any key to exit";
+    cin.get();
+    return 0;
+}

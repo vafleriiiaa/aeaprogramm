@@ -1,0 +1,53 @@
+элжур Системное программирование. Процессы. Задание 15.02.2024, 10:41
+Код Е.Л.:
+
+Программа вывода на консоль своего имени и параметров
+
+#include <conio.h>
+
+int main(int argc, char* argv[]) {
+  int i;
+
+  _cputs("Process is created");
+  _cputs("\nProcess name is: ");
+  _cputs(argv[0]);
+
+  for (i = 1; i < argc; ++i) {
+    _cprintf("\nThe %d parameter = %s", i, argv[i]);
+  }
+
+  _cputs("\nPress any key to finish\n");
+  _getch();
+
+  return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//                               клиент
+//////////////////////////////////////////////////////////////////////////////
+#include <windows.h>
+#include <conio.h>
+int main()
+{
+  wchar_t lpszAppName[] = L"C:\\ConsoleApplication2.exe";
+  STARTUPINFO si;
+  PROCESS_INFORMATION piApp;
+  ZeroMemory(&si, sizeof(si)); si.cb = sizeof(si);
+  // создать новый консольный процесс
+  if (!CreateProcess(lpszAppName, NULL, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &piApp))
+  {
+    _cputs("The new process is not created\n");
+    _cputs("Check a name of the process\n");
+    _cputs("Press any key to finish\n");
+    _getch();
+    return 0;
+  }
+  
+  _cputs("The new process is created\n");
+  // ожидание завершения созданного процесса
+  WaitForSingleObject(piApp.hProcess, INFINITE);
+  // закрыть дескрипторы этого процесса в текущем процессе
+  CloseHandle(piApp.hThread);
+  CloseHandle(piApp.hProcess);
+  return 0;
+}

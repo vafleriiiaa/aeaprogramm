@@ -1,0 +1,75 @@
+КОД ДЛЛ БИБЛИОТЕКИ:
+// YourLibrary.cpp
+#include "pch.h"
+#include <windows.h>
+#include <iostream>
+
+// Функция инициализации DLL
+extern "C" __declspec(dllexport) void InitializeDLL() {
+    // Ничего не выводим при инициализации
+}
+
+// Функция выгрузки DLL
+extern "C" __declspec(dllexport) void CleanupDLL() {
+    // Код очистки (если нужен)
+}
+
+// Новая функция для вывода "Hello, World!"
+extern "C" __declspec(dllexport) void PrintHelloWorld() {
+    std::cout << "Hello, World!" << std::endl; // Вывод в консоль
+}
+
+// Функция, вызываемая при загрузке DLL
+BOOL APIENTRY DllMain(HMODULE hModule,
+    DWORD  ul_reason_for_call,
+    LPVOID lpReserved) {
+    switch (ul_reason_for_call) {
+    case DLL_PROCESS_ATTACH:
+        InitializeDLL();
+        break;
+    case DLL_THREAD_ATTACH:
+    case DLL_THREAD_DETACH:
+    case DLL_PROCESS_DETACH:
+        CleanupDLL();
+        break;
+    }
+    return TRUE;
+}
+
+КОД ДЛЯ ТЕСТА БИБЛИОТЕКИ
+// Main.cpp
+#include <windows.h>
+#include <iostream>
+
+typedef void (*InitFunc)();
+typedef void (*CleanupFunc)();
+typedef void (*PrintHelloFunc)();
+
+int main() {
+    HMODULE hDll = LoadLibrary(L"C:\\Users\\jupig\\source\\repos\\Dll1\\x64\\Debug\\Dll1.dll");
+    if (hDll) {
+        InitFunc InitializeDLL = (InitFunc)GetProcAddress(hDll, "InitializeDLL");
+        CleanupFunc CleanupDLL = (CleanupFunc)GetProcAddress(hDll, "CleanupDLL");
+        PrintHelloFunc PrintHelloWorld = (PrintHelloFunc)GetProcAddress(hDll, "PrintHelloWorld");
+
+        if (InitializeDLL) {
+            InitializeDLL();
+        }
+
+        // Вызов функции для вывода "Hello, World!"
+        if (PrintHelloWorld) {
+            PrintHelloWorld();
+        }
+
+        if (CleanupDLL) {
+            CleanupDLL();
+        }
+
+        FreeLibrary(hDll);
+    }
+    else {
+        std::cerr << "Failed to load DLL" << std::endl;
+    }
+
+    return 0;
+}

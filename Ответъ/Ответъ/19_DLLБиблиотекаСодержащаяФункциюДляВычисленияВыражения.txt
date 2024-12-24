@@ -1,0 +1,97 @@
+вот код библиотеки:
+
+#include "pch.h"
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <stdexcept>
+#include <Windows.h>
+
+extern "C" __declspec(dllexport) double EvaluateExpression(const char* expression) {
+    std::istringstream iss(expression);
+    double result;
+    char op;
+    double num;
+
+    // Чтение первого числа
+    if (!(iss >> result)) {
+        throw std::invalid_argument("Invalid expression");
+    }
+
+    // Обработка оставшихся операций
+    while (iss >> op >> num) {
+        switch (op) {
+        case '+':
+            result += num;
+            break;
+        case '-':
+            result -= num;
+            break;
+        case '*':
+            result *= num;
+            break;
+        case '/':
+            if (num == 0) {
+                throw std::invalid_argument("Division by zero");
+            }
+            result /= num;
+            break;
+        default:
+            throw std::invalid_argument("Invalid operator");
+        }
+    }
+
+    return result;
+}
+
+
+
+вот код программы для теста библиотеки:
+
+// main.cpp
+#include <iostream>
+#include <Windows.h>
+
+typedef double (*EvaluateExpressionFunc)(const char*);
+
+int main() {
+    // Загрузка библиотеки DLL
+    HMODULE hModule = LoadLibraryA("C:\\Users\\jupig\\source\\repos\\Dll1\\x64\\Debug\\Dll1.dll");
+    if (!hModule) {
+        std::cerr << "Failed to load the library!" << std::endl;
+        return 1;
+    }
+
+    // Получение адреса функции
+    EvaluateExpressionFunc EvaluateExpression = (EvaluateExpressionFunc)GetProcAddress(hModule, "EvaluateExpression");
+    if (!EvaluateExpression) {
+        std::cerr << "Failed to find the function!" << std::endl;
+        FreeLibrary(hModule);
+        return 1;
+    }
+
+    // Примеры выражений для тестирования
+    const char* expressions[] = {
+        "1 = 1",
+        "22 / 2",
+        "5 * 3",
+        "10 - 4",
+        "10 / 0", // Это вызовет ошибку
+        "invalid expression" // Это также вызовет ошибку
+    };
+
+    // Тестирование выражений
+    for (const char* expr : expressions) {
+        try {
+            double result = EvaluateExpression(expr);
+            std::cout << "Result of expression '" << expr << "': " << result << std::endl;
+        }
+        catch (const std::invalid_argument& e) {
+            std::cerr << "Error calculating expression '" << expr << "': " << e.what() << std::endl;
+        }
+    }
+
+    // Освобождение библиотеки
+    FreeLibrary(hModule);
+    return 0;
+}

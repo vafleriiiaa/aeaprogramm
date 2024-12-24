@@ -1,0 +1,48 @@
+Сообщение от Елены Леонидовны 
+(элжур Системное программирование. Задание. Управление потоками
+09.02.2024, 12:43)
+
+#include <windows.h> 
+#include <iostream>
+#include <string.h>
+#include <process.h> 
+using namespace std;
+UINT WINAPI thead(void* pString)
+{
+  int i = 1;
+  char* plexema;
+  char* comtext = nullptr;
+  plexema = strtok_s((char*)pString, " ",&comtext);
+  while (plexema != NULL)
+  {
+    cout << "Thread find the lexema" << i << ":" << plexema << endl;
+    plexema = strtok_s(NULL, " ", &comtext);
+    i++;
+    return 0;
+  }
+}
+int main()
+{
+  char sentence[80];
+  int i, j, k = 0;
+  HANDLE hThread;
+  UINT IDTHread;
+  cout << "Input string: ";
+  cin.getline(sentence, 80);
+  j = strlen(sentence);
+  // создать поток для подсчета лексем
+  hThread = (HANDLE)_beginthreadex(NULL, 0, thead, sentence, 0, &IDTHread);
+  if (hThread == NULL)
+    return GetLastError();
+
+  // подсчет количества букв "а" в строке
+  for (i = 0; i < j; i++)
+    if (sentence[i] == 'a')
+      k++;
+  cout << "Number of symbols 'a' in the string=" << k << endl;
+  // ожидание окнчания рабра на лексемы
+  WaitForSingleObject(hThread, INFINITE);
+  // закрыть декскриптор потока thread
+  CloseHandle(hThread);
+  return 0;
+}

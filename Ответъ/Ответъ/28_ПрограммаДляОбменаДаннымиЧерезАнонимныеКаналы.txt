@@ -1,0 +1,110 @@
+родительский процесс
+
+#include <windows.h>
+#include <stdio.h>
+#include <string.h>
+#include <iostream>
+
+#define CLIENT_FILE "28-1.exe" // EXE файл клиента
+
+using namespace std;
+
+int main() {
+    setlocale(LC_ALL, "Russian"); // Русский язык
+
+    char buf[1024];
+    SECURITY_ATTRIBUTES sa;
+    PROCESS_INFORMATION pi;
+    HANDLE newstdread, newstdwrite; // Дескрипторы
+
+    sa.nLength = sizeof(sa);
+    sa.lpSecurityDescriptor = NULL;
+    sa.bInheritHandle = TRUE; // Наследование
+
+    // Создаем канал
+    if (!CreatePipe(&newstdread, &newstdwrite, &sa, 0)) {
+        cout << "Pipe не создан...\n";
+        getchar();
+        return 0;
+    }
+    else {
+        cout << "Pipe создан!\n";
+    }
+
+    STARTUPINFO si;
+    ZeroMemory(&si, sizeof(STARTUPINFO)); // Очистка
+
+    // Настройка информации о процессе
+    si.cb = sizeof(STARTUPINFO);
+    si.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_NORMAL;
+    si.hStdInput = newstdread; // Перенаправляем поток ввода
+    si.hStdOutput = newstdwrite; // Перенаправляем поток вывода
+    si.hStdError = si.hStdOutput; // Перенаправляем поток ошибок
+
+    TCHAR czCommandLine[] = TEXT(CLIENT_FILE); // Наш клиент
+
+    // Создаем процесс
+    if (!CreateProcess(NULL, czCommandLine, NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi)) {
+        cout << "Процесс не создан...\n";
+        getchar();
+        CloseHandle(newstdread);
+        CloseHandle(newstdwrite);
+        return 0;
+    }
+    else {
+        cout << "Процесс создан!\n";
+    }
+
+    DWORD with_file;
+
+    // Доп. информация
+    cout << "STD INPUT HANDLE = " << newstdread << endl;
+    cout << "STD OUTPUT HANDLE = " << newstdwrite << endl;
+
+    strcpy_s(buf, "переданныйтекст\n"); // Строку отправляем в поток ввода клиента
+    WriteFile(newstdwrite, buf, strlen(buf), &with_file, NULL);
+
+    // Закрытие записи, чтобы дочерний процесс знал, что ввод завершен
+    CloseHandle(newstdwrite);
+
+    Sleep(400);
+
+    // Чтение результата из канала
+    memset(buf, '\0', sizeof(buf));
+    if (ReadFile(newstdread, buf, sizeof(buf) - 1, &with_file, NULL)) {
+        printf("Результат: %s\n", buf); // Получаем результат от клиента
+    }
+    else {
+        printf("Ошибка чтения из канала\n");
+    }
+
+    // Закрытие дескрипторов
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    CloseHandle(newstdread);
+
+    getchar(); // Пауза перед выходом
+
+    return 0;
+}
+
+Дочерний процесс:
+В отдельном приложении пишешь эту хуйню, 
+запускаешь один раз родительский процесс, можно просто с hello world, запускаешь дочерний,
+кидаешь его exe файл в папку с exe файлом другого проекта
+
+int main() {
+    char str[1024];
+
+    // Чтение строки из стандартного ввода
+    if (fgets(str, sizeof(str), stdin) != NULL) {
+        // Обработка строки (например, добавление текста)
+        printf("вывод из дочернего процесса: %s\n", str);
+    }
+    else {
+        printf("Ошибка ввода\n");
+    }
+
+    return 0;
+}

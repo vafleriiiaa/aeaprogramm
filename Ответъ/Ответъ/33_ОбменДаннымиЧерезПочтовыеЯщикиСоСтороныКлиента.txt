@@ -1,0 +1,151 @@
+#include <windows.h>
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    HANDLE hMailslot;
+
+    // Создание почтового ящика
+    hMailslot = CreateMailslot(
+        L"\\\\.\\mailslot\\demo_mailslot", // Имя почтового ящика
+        0,                                // Максимальный размер сообщения (0 = любое)
+        MAILSLOT_WAIT_FOREVER,            // Время ожидания сообщения
+        NULL                              // Атрибуты безопасности (по умолчанию)
+    );
+
+    if (hMailslot == INVALID_HANDLE_VALUE)
+    {
+        cerr << "Create mailslot failed." << endl
+            << "The last error code: " << GetLastError() << endl;
+        return 0;
+    }
+
+    cout << "The mailslot is created." << endl;
+    cout << "The server is waiting for messages..." << endl;
+
+    // Чтение данных из почтового ящика
+    DWORD bytesRead;
+    int data;
+    while (true)
+    {
+        // Получение информации о доступных данных
+        DWORD messageSize = 0;
+        DWORD messageCount = 0;
+        BOOL result = GetMailslotInfo(
+            hMailslot,        // Дескриптор почтового ящика
+            NULL,             // Максимальный размер сообщения (игнорируется)
+            &messageSize,     // Размер следующего сообщения (в байтах)
+            &messageCount,    // Количество сообщений в очереди
+            NULL              // Время ожидания (игнорируется)
+        );
+
+        if (!result)
+        {
+            cerr << "GetMailslotInfo failed." << endl
+                << "The last error code: " << GetLastError() << endl;
+            CloseHandle(hMailslot);
+            return 0;
+        }
+
+        if (messageSize == MAILSLOT_NO_MESSAGE)
+        {
+            Sleep(100); // Нет сообщений, подождём
+            continue;
+        }
+
+        // Чтение сообщений из почтового ящика
+        for (DWORD i = 0; i < messageCount; i++)
+        {
+            if (!ReadFile(
+                hMailslot,       // Дескриптор почтового ящика
+                &data,          // Буфер для данных
+                sizeof(data),   // Размер буфера
+                &bytesRead,     // Количество прочитанных байтов
+                NULL            // Синхронное чтение
+            ))
+            {
+                cerr << "Read file failed." << endl
+                    << "The last error code: " << GetLastError() << endl;
+                CloseHandle(hMailslot);
+                return 0;
+            }
+
+            // Вывод прочитанного числа на консоль
+            cout << "The number " << data << " was read from the mailslot." << endl;
+        }
+    }
+
+    // Закрытие дескриптора почтового ящика
+    CloseHandle(hMailslot);
+    cout << "The mailslot is closed by the server." << endl;
+
+    return 0;
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+//                               клиент
+//////////////////////////////////////////////////////////////////////////////
+
+#include <windows.h>
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    HANDLE hMailslot;
+    wchar_t mailslotName[] = L"\\\\.\\mailslot\\demo_mailslot";
+
+    // Подключение к почтовому ящику
+    hMailslot = CreateFile(
+        mailslotName,           // Имя почтового ящика
+        GENERIC_WRITE,          // Доступ только для записи
+        FILE_SHARE_READ,        // Разрешено чтение из ящика другими процессами
+        NULL,                   // Безопасность по умолчанию
+        OPEN_EXISTING,          // Подключение к уже существующему почтовому ящику
+        0,                      // Атрибуты по умолчанию
+        NULL                    // Дополнительных атрибутов нет
+    );
+
+    if (hMailslot == INVALID_HANDLE_VALUE)
+    {
+        cerr << "Connection to the mailslot failed." << endl
+            << "The last error code: " << GetLastError() << endl;
+        return 0;
+    }
+
+    cout << "Connected to the mailslot." << endl;
+
+    // Отправка данных в почтовый ящик
+    DWORD bytesWritten;
+    for (int i = 0; i < 10; i++)
+    {
+        // Данные для отправки
+        int data = i;
+        if (!WriteFile(
+            hMailslot,           // Дескриптор почтового ящика
+            &data,               // Адрес данных для записи
+            sizeof(data),        // Размер данных
+            &bytesWritten,       // Количество записанных байтов
+            NULL                 // Синхронная запись
+        ))
+        {
+            cerr << "Writing to the mailslot failed." << endl
+                << "The last error code: " << GetLastError() << endl;
+            CloseHandle(hMailslot);
+            return 0;
+        }
+
+        cout << "The number " << data << " is written to the mailslot." << endl;
+        Sleep(100); // Задержка перед отправкой следующего сообщения
+    }
+
+    // Закрытие дескриптора почтового ящика
+    CloseHandle(hMailslot);
+    cout << "The mailslot is closed by the client." << endl;
+
+    return 0;
+}

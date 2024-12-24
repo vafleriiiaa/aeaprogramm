@@ -1,0 +1,64 @@
+Вообще я бы рекомендовал использовать код из задания 3, т.к. он аналогичный, но с использованием метода отображения файлов, 
+без отображения Елена Леонидовна не кидала, поэтому это правка от жпт)
+
+#include <windows.h>
+#include <stdio.h>
+
+#define BUF_SIZE 1024 // Размер буфера для чтения/записи
+
+BOOL Asc2Un(LPCTSTR fIn, LPCTSTR fOut, BOOL bFailIfExists)
+/* Функция копирования файлов с преобразованием из ASCII в Unicode. */
+{
+    HANDLE hIn, hOut;
+    DWORD bytesRead, bytesWritten;
+    CHAR bufferIn[BUF_SIZE]; // Буфер для чтения ASCII данных
+    WCHAR bufferOut[BUF_SIZE]; // Буфер для записи Unicode данных
+
+    // Открыть входной файл для чтения
+    hIn = CreateFile(fIn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hIn == INVALID_HANDLE_VALUE)
+    {
+        printf("Unable to open input file %s. Error: %x\n", fIn, GetLastError());
+        return FALSE;
+    }
+
+    // Открыть выходной файл для записи
+    DWORD dwCreationDisposition = bFailIfExists ? CREATE_NEW : CREATE_ALWAYS;
+    hOut = CreateFile(fOut, GENERIC_WRITE, 0, NULL, dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hOut == INVALID_HANDLE_VALUE)
+    {
+        printf("Unable to open output file %s. Error: %x\n", fOut, GetLastError());
+        CloseHandle(hIn);
+        return FALSE;
+    }
+
+    // Записать BOM (Byte Order Mark) для Unicode
+    WCHAR bom = 0xFEFF;
+    WriteFile(hOut, &bom, sizeof(bom), &bytesWritten, NULL);
+
+    // Читать данные из входного файла и преобразовывать в Unicode
+    while (ReadFile(hIn, bufferIn, BUF_SIZE, &bytesRead, NULL) && bytesRead > 0)
+    {
+        // Преобразовать каждый символ из ASCII в Unicode
+        for (DWORD i = 0; i < bytesRead; i++)
+        {
+            bufferOut[i] = (WCHAR)bufferIn[i];
+        }
+
+        // Записать преобразованные данные в выходной файл
+        WriteFile(hOut, bufferOut, bytesRead * sizeof(WCHAR), &bytesWritten, NULL);
+        if (bytesWritten != bytesRead * sizeof(WCHAR))
+        {
+            printf("Write error. Error: %x\n", GetLastError());
+            CloseHandle(hIn);
+            CloseHandle(hOut);
+            return FALSE;
+        }
+    }
+
+    // Закрыть файлы
+    CloseHandle(hIn);
+    CloseHandle(hOut);
+
+    return TRUE;
+}

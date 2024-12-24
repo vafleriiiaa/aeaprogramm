@@ -1,0 +1,82 @@
+ПРЕДВАРИТЕЛЬНО СОЗДАДИМ ФАЙЛ С ЧИСЛАМИ ЧЕРЕЗ ПРОБЕЛ, ИМЯ ФАЙЛА test.txt
+
+ПРОГРАММА:
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <windows.h>
+
+const int BUFFER_SIZE = 256;
+
+void findMaxInFile(const std::string& filename, int& maxNumber) {
+    std::ifstream inFile(filename);
+    if (!inFile) {
+        std::cerr << "Could not open the file!" << std::endl;
+        return;
+    }
+
+    maxNumber = INT_MIN; // Инициализация минимальным значением
+    int number;
+
+    // Чтение чисел из файла и нахождение максимального
+    while (inFile >> number) {
+        if (number > maxNumber) {
+            maxNumber = number;
+        }
+    }
+
+    inFile.close();
+}
+
+void displayFileInMemory(const std::string& filename) {
+    // Создание объекта для отображаемой в память памяти
+    HANDLE hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, BUFFER_SIZE, TEXT("Local\\MySharedMemory"));
+    if (hMapFile == NULL) {
+        std::cerr << "Could not create file mapping object: " << GetLastError() << std::endl;
+        return;
+    }
+
+    // Получение указателя на отображаемую память
+    char* pBuf = (char*)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, BUFFER_SIZE);
+    if (pBuf == NULL) {
+        std::cerr << "Could not map view of file: " << GetLastError() << std::endl;
+        CloseHandle(hMapFile);
+        return;
+    }
+
+    // Чтение содержимого файла в отображаемую память
+    std::ifstream inFile(filename);
+    inFile.read(pBuf, BUFFER_SIZE - 1);
+    pBuf[inFile.gcount()] = '\0'; // Завершение строки
+
+    std::cout << "File content in memory: " << pBuf << std::endl;
+
+    // Освобождение ресурсов
+    UnmapViewOfFile(pBuf);
+    CloseHandle(hMapFile);
+}
+
+void writeMaxToFile(const std::string& filename, int maxNumber) {
+    std::ofstream outFile(filename, std::ios::app); // Открытие файла для добавления
+    if (!outFile) {
+        std::cerr << "Could not open the file for writing!" << std::endl;
+        return;
+    }
+
+    outFile << "\nMax number: " << maxNumber; // Запись максимального числа
+    outFile.close();
+}
+
+int main() {
+    const std::string filename = "test.txt";
+    int maxNumber;
+
+    findMaxInFile(filename, maxNumber); // Нахождение максимального числа
+    std::cout << "Max number found: " << maxNumber << std::endl;
+
+    displayFileInMemory(filename); // Отображение содержимого файла в память
+    writeMaxToFile(filename, maxNumber); // Запись максимального числа в файл
+
+    return 0;
+}

@@ -1,0 +1,72 @@
+СОЗДАТЬ ТЕКСТОВЫЙ ФАЙЛ test.txt И ЧТО ТО ТУДА НАПИСАТЬ
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+
+void clearConsole() {
+    // Очистка консоли
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(hConsole, &csbi);
+    DWORD consoleSize = csbi.srWindow.Right * csbi.srWindow.Bottom;
+    DWORD written;
+    COORD coord = { 0, 0 }; // Корректное использование структуры COORD
+    FillConsoleOutputCharacter(hConsole, ' ', consoleSize, coord, &written);
+    SetConsoleCursorPosition(hConsole, coord);
+}
+
+void displayFileContent(const char* filename) {
+    FILE* file = NULL;
+    // Использование fopen_s для безопасного открытия файла
+    if (fopen_s(&file, filename, "r") != 0) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Создание буфера для хранения содержимого файла
+    char* buffer = NULL;
+    size_t bufferSize = 0;
+
+    // Чтение содержимого файла в буфер
+    fseek(file, 0, SEEK_END);
+    bufferSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    buffer = (char*)malloc(bufferSize + 1);
+    if (buffer == NULL) {
+        perror("Memory allocation error");
+        fclose(file);
+        return;
+    }
+
+    size_t bytesRead = fread(buffer, 1, bufferSize, file);
+    if (bytesRead != bufferSize) {
+        perror("Error reading file");
+        free(buffer);
+        fclose(file);
+        return;
+    }
+    buffer[bytesRead] = '\0'; // Завершение строки
+
+    // Очистка консоли перед выводом
+    clearConsole();
+
+    // Вывод содержимого буфера на экран
+    printf("File content:\n%s\n", buffer);
+
+    // Освобождение ресурсов
+    free(buffer);
+    fclose(file);
+
+    // Ожидание нажатия клавиши перед закрытием
+    system("pause");
+}
+
+int main() {
+    const char* filename = "test.txt"; // Укажите имя вашего файла
+
+    displayFileContent(filename); // Вызов функции для отображения содержимого файла
+
+    return 0;
+}

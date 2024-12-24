@@ -1,0 +1,27 @@
+Сообщения про каталоги (элжур Системное программирование. 
+Управление файлами и каталогами 26.01.2024, 12:53)
+#include <windows.h>
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+int main()
+{
+    char buffer[MAX_PATH]; // Буфер для хранения пути к текущему каталогу
+
+    // Получаем текущий каталог
+    if (GetCurrentDirectory(MAX_PATH, buffer) == 0)
+    {
+        cerr << "Failed to get current directory." << endl
+             << "The last error code: " << GetLastError() << endl;
+        cout << "Press any key to finish.";
+        cin.get();
+        return 1;
+    }
+
+    // Выводим текущий каталог
+    cout << "Current directory: " << buffer << endl;
+
+    return 0;
+}

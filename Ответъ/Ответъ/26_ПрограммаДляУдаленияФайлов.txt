@@ -1,0 +1,16 @@
+Предварительно создать файл text.txt
+#include <stdio.h>
+#include <locale.h>
+
+int main() {
+    const char* filename = "text.txt";
+    setlocale(LC_ALL, "Russian");
+    if (remove(filename) == 0) {
+        printf("Файл успешно удален.\n");
+    }
+    else {
+        perror("Ошибка удаления файла");
+    }
+
+    return 0;
+}
